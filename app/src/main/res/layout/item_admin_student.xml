@@ -93,6 +93,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_delete"
             android:contentDescription="Delete student"
-            app:tint="#D32F2F" />
+            app:tint="#F44336" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

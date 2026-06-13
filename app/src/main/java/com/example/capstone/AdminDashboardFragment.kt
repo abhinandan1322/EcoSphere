@@ -222,37 +222,10 @@ class AdminDashboardFragment : Fragment(), NavigationAware {
     }
 
     private fun loadActiveTodayFallback() {
-        // NEW: Filter by batches or school
-        val query = when {
-            assignedBatches.isNotEmpty() -> {
-                firestore.collection("Users")
-                    .whereEqualTo("role", "student")
-                    .whereIn("batchId", assignedBatches.take(10))
-            }
-            teacherSchoolId != null -> {
-                firestore.collection("Users")
-                    .whereEqualTo("role", "student")
-                    .whereEqualTo("schoolId", teacherSchoolId)
-            }
-            else -> {
-                firestore.collection("Users")
-                    .whereEqualTo("role", "student")
-            }
-        }
-
-        query.whereGreaterThan("ecoPoints", 0)
-            .get()
-            .addOnSuccessListener { documents ->
-                if (_binding == null) return@addOnSuccessListener
-                val count = documents.size()
-                android.util.Log.d("Dashboard", "Active today (fallback ecoPoints>0): $count")
-                binding.tvActiveUsers.text = count.toString()
-            }
-            .addOnFailureListener { e ->
-                if (_binding == null) return@addOnFailureListener
-                android.util.Log.e("Dashboard", "Failed to load active users fallback", e)
-                binding.tvActiveUsers.text = "—"
-            }
+        // lastLoginAt field not available — show 0 rather than misleading "has points" count
+        if (_binding == null) return
+        android.util.Log.d("Dashboard", "lastLoginAt not available, showing 0 for active today")
+        binding.tvActiveUsers.text = "0"
     }
 
     // ─── Card 3: Total EcoPoints ──────────────────────────────────────────────
@@ -306,16 +279,14 @@ class AdminDashboardFragment : Fragment(), NavigationAware {
     }
 
     // ─── Card 4: Average Completion Rate ─────────────────────────────────────
-    // Queries total modules count, then calculates avg based on ecoPoints.
-    // Each module completion = 25 pts (quiz) + 10 pts (completion) = ~35 pts.
-    // We use a points-per-module estimate since querying all subcollections
-    // would require N+1 Firestore reads (too expensive for a dashboard).
+    // Counts actual completions subcollection entries per student.
+    // This is accurate since quiz no longer awards points separately.
 
     private fun loadAverageCompletion() {
         binding.tvAverageCompletion.text = "..."
         android.util.Log.d("Dashboard", "Loading average completion...")
 
-        // Filter modules by school (not all modules globally)
+        // Filter modules by school
         val modulesQuery = when {
             teacherSchoolId != null ->
                 firestore.collection("Modules").whereEqualTo("schoolId", teacherSchoolId)
@@ -334,7 +305,9 @@ class AdminDashboardFragment : Fragment(), NavigationAware {
                     return@addOnSuccessListener
                 }
 
-                // Filter students by batches or school
+                val schoolModuleIds = moduleDocs.documents.map { it.id }.toSet()
+
+                // Get students filtered by school/batch
                 val query = when {
                     assignedBatches.isNotEmpty() -> {
                         firestore.collection("Users")
@@ -361,22 +334,39 @@ class AdminDashboardFragment : Fragment(), NavigationAware {
                             return@addOnSuccessListener
                         }
 
-                        // Points per module: 10 (completion) + 25 (quiz) = 35 avg
-                        val pointsPerModule = 35
+                        val studentIds = studentDocs.documents.map { it.id }
                         var totalCompletionRate = 0.0
+                        var processedStudents = 0
 
-                        for (student in studentDocs) {
-                            val ecoPoints = student.getLong("ecoPoints") ?: 0
-                            val estimatedModules = (ecoPoints / pointsPerModule).toInt()
-                                .coerceAtMost(totalModules)
-                            val rate = estimatedModules.toDouble() / totalModules * 100
-                            totalCompletionRate += rate
+                        for (studentId in studentIds) {
+                            firestore.collection("Users").document(studentId)
+                                .collection("completions").get()
+                                .addOnSuccessListener { completions ->
+                                    // Only count completions for existing school modules
+                                    val validCompletions = completions.documents
+                                        .count { it.id in schoolModuleIds }
+                                    val rate = validCompletions.toDouble() / totalModules * 100
+                                    totalCompletionRate += rate
+                                    processedStudents++
+
+                                    if (processedStudents == studentIds.size) {
+                                        if (_binding == null) return@addOnSuccessListener
+                                        val avgCompletion = (totalCompletionRate / studentIds.size)
+                                            .toInt().coerceIn(0, 100)
+                                        android.util.Log.d("Dashboard", "Avg completion: $avgCompletion%")
+                                        binding.tvAverageCompletion.text = "$avgCompletion%"
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    processedStudents++
+                                    if (processedStudents == studentIds.size) {
+                                        if (_binding == null) return@addOnFailureListener
+                                        val avgCompletion = (totalCompletionRate / studentIds.size)
+                                            .toInt().coerceIn(0, 100)
+                                        binding.tvAverageCompletion.text = "$avgCompletion%"
+                                    }
+                                }
                         }
-
-                        val avgCompletion = (totalCompletionRate / studentDocs.size()).toInt()
-                            .coerceIn(0, 100)
-                        android.util.Log.d("Dashboard", "Avg completion: $avgCompletion%")
-                        binding.tvAverageCompletion.text = "$avgCompletion%"
                     }
                     .addOnFailureListener { e ->
                         if (_binding == null) return@addOnFailureListener

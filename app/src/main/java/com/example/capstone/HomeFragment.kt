@@ -19,10 +19,8 @@ class HomeFragment : Fragment() {
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
     
-    // Simple cache to avoid redundant Firestore queries
+    // Fallback cache — only used when server fetch fails
     private var cachedUserData: UserData? = null
-    private var lastCacheTime: Long = 0
-    private val cacheValidityMs = 5 * 60 * 1000L // 5 minutes
 
     data class UserData(
         val name: String,
@@ -57,18 +55,16 @@ class HomeFragment : Fragment() {
     }
     
     private fun updateGreeting() {
-        val calendar = Calendar.getInstance()
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+
         val greeting = when (hour) {
-            in 0..11 -> "Good Morning 🌅"
-            in 12..16 -> "Good Afternoon ☀️"
-            in 17..20 -> "Good Evening 🌆"
-            else -> "Good Night 🌙"
+            in 5..11  -> "Good Morning 🌅"       // 5:00 AM – 11:59 AM
+            in 12..16 -> "Good Afternoon ☀️"     // 12:00 PM – 4:59 PM
+            in 17..20 -> "Good Evening 🌆"       // 5:00 PM – 8:59 PM
+            else      -> "Have a Good Night 🌙"  // 9:00 PM – 4:59 AM
         }
-        
-        // Note: Greeting is now in XML as static text, but we can update it dynamically if needed
-        // For now, keeping the welcome message dynamic
+
+        binding.tvGreeting.text = greeting
     }
     
     private fun loadDailyStreak() {
@@ -174,35 +170,27 @@ class HomeFragment : Fragment() {
 
     private fun loadUserData() {
         val currentUser = auth.currentUser ?: return
-        
-        // Check if we have valid cached data
-        val currentTime = System.currentTimeMillis()
-        if (cachedUserData != null && (currentTime - lastCacheTime) < cacheValidityMs) {
-            // Use cached data
-            displayUserData(cachedUserData!!)
-            loadStats(currentUser.uid)
-            return
-        }
 
+        // Always fetch fresh from server — no cache
+        // This ensures EcoPoints reflect immediately after any teacher action
         firestore.collection("Users")
             .document(currentUser.uid)
-            .get()
+            .get(com.google.firebase.firestore.Source.SERVER)
             .addOnSuccessListener { document ->
+                if (_binding == null) return@addOnSuccessListener
                 if (document.exists()) {
                     val name = document.getString("name") ?: "Eco Warrior"
                     val ecoPoints = document.getLong("ecoPoints") ?: 0
                     val level = calculateLevel(ecoPoints.toInt())
                     
-                    // Cache the data
-                    cachedUserData = UserData(name, ecoPoints, level)
-                    lastCacheTime = currentTime
-                    
-                    displayUserData(cachedUserData!!)
+                    val userData = UserData(name, ecoPoints, level)
+                    displayUserData(userData)
                     loadStats(currentUser.uid)
                 }
             }
             .addOnFailureListener {
-                // Use cached data if available on failure
+                if (_binding == null) return@addOnFailureListener
+                // On failure, try cache as fallback
                 cachedUserData?.let { displayUserData(it) }
             }
     }

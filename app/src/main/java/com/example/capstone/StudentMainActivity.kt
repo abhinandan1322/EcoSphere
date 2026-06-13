@@ -29,6 +29,8 @@ class StudentMainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityStudentMainBinding
     private lateinit var navigationController: StudentNavigationController
+    // Store listener so it can be removed on logout/destroy
+    private var platformSettingsListener: com.google.firebase.firestore.ListenerRegistration? = null
     
     companion object {
         private const val TAG = "StudentMainActivity"
@@ -139,13 +141,27 @@ class StudentMainActivity : AppCompatActivity() {
     
     private fun showExitConfirmation() {
         android.app.AlertDialog.Builder(this)
-            .setTitle("Exit EcoLearn")
+            .setTitle("Exit EcoSphere")
             .setMessage("Are you sure you want to exit the app?")
             .setPositiveButton("Exit") { _, _ ->
                 super.onBackPressed()
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Remove all Firestore listeners to prevent PERMISSION_DENIED errors after logout
+        stopListeners()
+        Log.d(TAG, "All Firestore listeners removed")
+    }
+
+    /** Called before logout to cleanly remove all active listeners */
+    fun stopListeners() {
+        platformSettingsListener?.remove()
+        platformSettingsListener = null
+        PushNotificationService.stopListening()
     }
     
     // ─── Notification Setup ───────────────────────────────────────────────────
@@ -164,7 +180,7 @@ class StudentMainActivity : AppCompatActivity() {
                     // Show explanation and request permission
                     android.app.AlertDialog.Builder(this)
                         .setTitle("Enable Notifications")
-                        .setMessage("EcoLearn would like to send you daily learning reminders and important updates. Enable notifications?")
+                        .setMessage("EcoSphere would like to send you daily learning reminders and important updates. Enable notifications?")
                         .setPositiveButton("Enable") { _, _ ->
                             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
@@ -264,7 +280,7 @@ class StudentMainActivity : AppCompatActivity() {
     private fun scheduleDailyReminders() {
         // Listen for real-time changes to platform settings
         val firestore = FirebaseFirestore.getInstance()
-        firestore.collection("PlatformSettings")
+        platformSettingsListener = firestore.collection("PlatformSettings")
             .document("config")
             .addSnapshotListener { document, error ->
                 if (error != null) {

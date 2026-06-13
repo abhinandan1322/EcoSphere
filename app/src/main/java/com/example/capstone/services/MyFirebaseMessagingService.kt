@@ -19,9 +19,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "FCMService"
-        const val CHANNEL_ID = "ecolearn_channel"
-        const val CHANNEL_NAME = "EcoLearn Notifications"
-        const val CHANNEL_DESCRIPTION = "Notifications for EcoLearn app"
+        const val CHANNEL_ID = "EcoSphere_channel"
+        const val CHANNEL_NAME = "EcoSphere Notifications"
+        const val CHANNEL_DESCRIPTION = "Notifications for EcoSphere app"
     }
 
     override fun onNewToken(token: String) {
@@ -48,7 +48,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         
         if (messageType == "daily_reminder") {
             // Show system notification for daily reminders
-            val title = message.data["title"] ?: message.notification?.title ?: "EcoLearn Daily Reminder"
+            val title = message.data["title"] ?: message.notification?.title ?: "EcoSphere Daily Reminder"
             val body = message.data["body"] ?: message.notification?.body ?: "Time to learn something new!"
             
             Log.d(TAG, "📱 Showing system notification for daily reminder")

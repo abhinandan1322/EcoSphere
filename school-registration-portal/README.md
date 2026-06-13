@@ -1,6 +1,6 @@
 # School Registration Portal
 
-A professional web portal for schools to register and receive their unique access codes for the EcoLearn Platform.
+A professional web portal for schools to register and receive their unique access codes for the EcoSphere Platform.
 
 ## Features
 
@@ -138,7 +138,7 @@ match /Schools/{schoolId} {
 ### For Teachers
 
 1. Teachers receive school code from their school
-2. Download EcoLearn mobile app
+2. Download EcoSphere mobile app
 3. Select "Teacher" role
 4. Enter school code during registration
 5. First teacher becomes Lead Teacher (auto-approved)
@@ -232,10 +232,10 @@ Edit `index.html` to add/remove fields as needed. Make sure to update:
 ## Support
 
 For issues or questions:
-- Email: support@ecolearn.edu
+- Email: support@EcoSphere.edu
 - Check browser console for error messages
 - Review Firestore security rules
 
 ## License
 
-© 2026 EcoLearn Platform. All rights reserved.
+© 2026 EcoSphere Platform. All rights reserved.

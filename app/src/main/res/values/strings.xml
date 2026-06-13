@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">EcoLearn</string>
+    <string name="app_name">EcoSphere</string>
     
     <!-- Common UI Strings -->
     <string name="loading">Loading…</string>
@@ -39,7 +39,7 @@
     <string name="confirm_logout_title">Logout</string>
     <string name="confirm_logout_message">Are you sure you want to logout?</string>
     <string name="confirm_exit_title">Exit App</string>
-    <string name="confirm_exit_message">Are you sure you want to exit EcoLearn?</string>
+    <string name="confirm_exit_message">Are you sure you want to exit EcoSphere?</string>
     
     <!-- Accessibility Strings -->
     <string name="content_description_back_button">Navigate back</string>

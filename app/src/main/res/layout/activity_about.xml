@@ -22,7 +22,7 @@
             android:background="@drawable/gradient_header_bg"
             app:navigationIcon="@android:drawable/ic_menu_revert"
             app:navigationIconTint="#FFFFFF"
-            app:title="About EcoLearn"
+            app:title="About EcoSphere"
             app:titleTextColor="#FFFFFF" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -114,7 +114,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:lineSpacingExtra="4dp"
-                        android:text="EcoLearn is an interactive educational platform that makes learning about environmental issues engaging and rewarding."
+                        android:text="EcoSphere is an interactive educational platform that makes learning about environmental issues engaging and rewarding."
                         android:textColor="#757575"
                         android:textSize="15sp" />
 
@@ -376,7 +376,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
                         android:gravity="center"
-                        android:text="© 2026 EcoLearn. All rights reserved."
+                        android:text="© 2026 EcoSphere. All rights reserved."
                         android:textColor="#81C784"
                         android:textSize="12sp" />
                 </LinearLayout>

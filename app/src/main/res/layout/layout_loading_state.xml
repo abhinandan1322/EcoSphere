@@ -14,7 +14,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginBottom="16dp"
-        style="@style/Widget.EcoLearn.ProgressBar"
+        style="@style/Widget.EcoSphere.ProgressBar"
         android:contentDescription="@string/content_description_loading" />
 
     <TextView
@@ -22,7 +22,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/loading"
-        android:textAppearance="@style/TextAppearance.EcoLearn.Body2"
+        android:textAppearance="@style/TextAppearance.EcoSphere.Body2"
         android:textAlignment="center" />
 
 </LinearLayout>

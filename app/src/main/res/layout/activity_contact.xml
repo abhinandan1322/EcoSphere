@@ -140,7 +140,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="support@ecolearn.app"
+                            android:text="support@EcoSphere.app"
                             android:textColor="#4CAF50"
                             android:textSize="13sp" />
                     </LinearLayout>

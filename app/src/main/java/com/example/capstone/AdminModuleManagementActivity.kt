@@ -512,7 +512,7 @@ class AdminModuleManagementActivity : AppCompatActivity() {
     private fun showDeleteConfirmation(module: AdminModule) {
         AlertDialog.Builder(this)
             .setTitle("⚠️ Delete Module")
-            .setMessage("Are you sure you want to delete:\n\n\"${module.title}\"\n\nThis will also delete all ${module.questionCount} quiz questions. This action cannot be undone.")
+            .setMessage("Are you sure you want to delete:\n\n\"${module.title}\"\n\nThis will:\n• Delete all ${module.questionCount} quiz questions\n• Remove completion records for all students\n• Reverse EcoPoints earned by students\n\nThis action cannot be undone.")
             .setPositiveButton("Delete") { _, _ -> deleteModule(module) }
             .setNegativeButton("Cancel", null)
             .show()
@@ -521,37 +521,120 @@ class AdminModuleManagementActivity : AppCompatActivity() {
     private fun deleteModule(module: AdminModule) {
         android.util.Log.d("ModuleMgmt", "Deleting module: ${module.id}")
 
-        // Batch delete: questions subcollection + module doc
-        firestore.collection("Modules")
-            .document(module.id)
-            .collection("questions")
+        // Step 1: Find all students who completed this module
+        firestore.collection("Users")
+            .whereEqualTo("schoolId", currentUserSchoolId)
+            .whereEqualTo("role", "student")
             .get()
-            .addOnSuccessListener { questions ->
-                val batch = firestore.batch()
-                for (question in questions) {
-                    batch.delete(question.reference)
-                }
-                batch.delete(firestore.collection("Modules").document(module.id))
+            .addOnSuccessListener { students ->
+                val studentIds = students.documents.map { it.id }
+                android.util.Log.d("ModuleMgmt", "Found ${studentIds.size} students to check for completions")
 
-                batch.commit()
-                    .addOnSuccessListener {
-                        android.util.Log.d("ModuleMgmt", "✅ Module and ${questions.size()} questions deleted")
+                // Step 2: For each student, check if they completed this module and reverse points
+                var pendingOps = studentIds.size + 1 // +1 for the module+questions delete
+                var completedOps = 0
+
+                fun onOpComplete() {
+                    completedOps++
+                    if (completedOps >= pendingOps) {
+                        // All done — remove from UI
                         allModules.removeAll { it.id == module.id }
                         applySortAndSearch()
                         Snackbar.make(
                             binding.root,
-                            "✅ Module and ${questions.size()} questions deleted",
+                            "✅ Module deleted and student records updated",
                             Snackbar.LENGTH_SHORT
                         ).show()
                     }
+                }
+
+                // Step 3: Delete module + questions
+                firestore.collection("Modules")
+                    .document(module.id)
+                    .collection("questions")
+                    .get()
+                    .addOnSuccessListener { questions ->
+                        val batch = firestore.batch()
+                        for (question in questions) {
+                            batch.delete(question.reference)
+                        }
+                        batch.delete(firestore.collection("Modules").document(module.id))
+                        batch.commit()
+                            .addOnSuccessListener {
+                                android.util.Log.d("ModuleMgmt", "✅ Module and ${questions.size()} questions deleted")
+                                onOpComplete()
+                            }
+                            .addOnFailureListener { e ->
+                                android.util.Log.e("ModuleMgmt", "❌ Failed to delete module", e)
+                                Snackbar.make(binding.root, "❌ Failed to delete module: ${e.message}", Snackbar.LENGTH_LONG).show()
+                            }
+                    }
                     .addOnFailureListener { e ->
-                        android.util.Log.e("ModuleMgmt", "❌ Failed to delete module", e)
                         Snackbar.make(binding.root, "❌ Failed to delete module: ${e.message}", Snackbar.LENGTH_LONG).show()
                     }
+
+                // Step 4: For each student, reverse points and delete completion + quiz attempt
+                if (studentIds.isEmpty()) {
+                    onOpComplete() // no students, count the pending op as done
+                } else {
+                    for (studentId in studentIds) {
+                        val completionRef = firestore.collection("Users")
+                            .document(studentId)
+                            .collection("completions")
+                            .document(module.id)
+
+                        completionRef.get()
+                            .addOnSuccessListener { completionDoc ->
+                                if (completionDoc.exists()) {
+                                    val pointsAwarded = completionDoc.getLong("points") ?: module.points
+                                    android.util.Log.d("ModuleMgmt", "Reversing $pointsAwarded pts for student $studentId")
+
+                                    val studentBatch = firestore.batch()
+
+                                    // Remove completion record
+                                    studentBatch.delete(completionRef)
+
+                                    // Remove quiz attempt record
+                                    val quizAttemptRef = firestore.collection("Users")
+                                        .document(studentId)
+                                        .collection("quizAttempts")
+                                        .document(module.id)
+                                    studentBatch.delete(quizAttemptRef)
+
+                                    // Deduct EcoPoints
+                                    val userRef = firestore.collection("Users").document(studentId)
+                                    studentBatch.update(userRef, "ecoPoints",
+                                        com.google.firebase.firestore.FieldValue.increment(-pointsAwarded))
+
+                                    studentBatch.commit()
+                                        .addOnSuccessListener {
+                                            android.util.Log.d("ModuleMgmt", "✅ Reversed points for student $studentId")
+                                            onOpComplete()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            android.util.Log.e("ModuleMgmt", "❌ Failed to reverse points for $studentId", e)
+                                            onOpComplete() // continue even if one fails
+                                        }
+                                } else {
+                                    // Student didn't complete this module — nothing to reverse
+                                    onOpComplete()
+                                }
+                            }
+                            .addOnFailureListener {
+                                onOpComplete() // continue even if one fails
+                            }
+                    }
+                }
             }
             .addOnFailureListener { e ->
-                android.util.Log.e("ModuleMgmt", "❌ Failed to load questions for deletion", e)
-                Snackbar.make(binding.root, "❌ Failed to delete module: ${e.message}", Snackbar.LENGTH_LONG).show()
+                android.util.Log.e("ModuleMgmt", "❌ Failed to load students for cleanup", e)
+                // Fallback: delete module without reversing points
+                firestore.collection("Modules").document(module.id).delete()
+                    .addOnSuccessListener {
+                        allModules.removeAll { it.id == module.id }
+                        applySortAndSearch()
+                        Snackbar.make(binding.root, "✅ Module deleted (student records not updated)", Snackbar.LENGTH_SHORT).show()
+                    }
             }
     }
 

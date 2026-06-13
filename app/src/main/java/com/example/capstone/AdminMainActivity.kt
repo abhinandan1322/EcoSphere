@@ -99,7 +99,7 @@ class AdminMainActivity : AppCompatActivity() {
     
     private fun showExitConfirmation() {
         android.app.AlertDialog.Builder(this)
-            .setTitle("Exit EcoLearn")
+            .setTitle("Exit EcoSphere")
             .setMessage("Are you sure you want to exit the app?")
             .setPositiveButton("Exit") { _, _ ->
                 super.onBackPressed()

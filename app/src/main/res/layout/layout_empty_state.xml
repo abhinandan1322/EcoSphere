@@ -23,7 +23,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/error_no_data"
-        android:textAppearance="@style/TextAppearance.EcoLearn.Headline3"
+        android:textAppearance="@style/TextAppearance.EcoSphere.Headline3"
         android:textAlignment="center"
         android:layout_marginBottom="8dp" />
 
@@ -32,7 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Please try again later"
-        android:textAppearance="@style/TextAppearance.EcoLearn.Body2"
+        android:textAppearance="@style/TextAppearance.EcoSphere.Body2"
         android:textAlignment="center"
         android:layout_marginBottom="24dp" />
 
@@ -41,7 +41,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/retry"
-        style="@style/Widget.EcoLearn.Button.Outlined"
+        style="@style/Widget.EcoSphere.Button.Outlined"
         android:visibility="gone" />
 
 </LinearLayout>

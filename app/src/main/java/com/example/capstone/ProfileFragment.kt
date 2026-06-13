@@ -138,6 +138,12 @@ class ProfileFragment : Fragment(), NavigationAware {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Refresh profile data when returning to tab — ensures EcoPoints and level are current
+        loadUserProfile()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

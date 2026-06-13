@@ -252,13 +252,6 @@ class QuizActivity : AppCompatActivity() {
             val existingAttempt = transaction.get(quizAttemptRef)
 
             val previousPassed = existingAttempt.getBoolean("passed") ?: false
-            val previousRewarded = existingAttempt.getBoolean("rewarded") ?: false
-
-            // reward only if user passes now and was never rewarded before
-            val shouldReward = passed && !previousPassed && !previousRewarded
-            val finalRewarded = shouldReward || previousRewarded
-
-            val earnedPoints = if (shouldReward) percentage.toLong() else 0L
 
             // Handle attempt tracking
             val lastAttemptDate = existingAttempt.getTimestamp("lastAttemptDate")
@@ -266,18 +259,19 @@ class QuizActivity : AppCompatActivity() {
             
             val isToday = lastAttemptDate?.let { isSameDay(it.toDate(), Date()) } ?: false
             val newAttemptsToday = if (isToday) previousAttemptsToday + 1 else 1L
-            
+
             android.util.Log.d("QuizActivity", "Attempt tracking: isToday=$isToday, previous=$previousAttemptsToday, new=$newAttemptsToday")
 
+            // Quiz does NOT award EcoPoints directly.
+            // It only records the pass/fail status which unlocks the "Complete Module" button.
+            // EcoPoints are awarded ONLY when the student clicks "Complete Module" in ModuleDetailActivity.
             val quizData = hashMapOf(
                 "moduleId" to moduleId,
                 "moduleTitle" to moduleTitle,
                 "score" to correctCount,
                 "totalQuestions" to totalQuestions,
                 "percentage" to percentage,
-                "passed" to passed,
-                "rewarded" to finalRewarded,
-                "earnedPoints" to earnedPoints,
+                "passed" to (passed || previousPassed), // once passed, stays passed
                 "timestamp" to FieldValue.serverTimestamp(),
                 "lastAttemptDate" to Timestamp.now(),
                 "attemptsToday" to newAttemptsToday,
@@ -286,14 +280,11 @@ class QuizActivity : AppCompatActivity() {
 
             transaction.set(quizAttemptRef, quizData)
 
-            if (shouldReward) {
-                transaction.update(userRef, "ecoPoints", FieldValue.increment(earnedPoints))
-            }
+            // NO ecoPoints increment here — points come only from module completion
 
         }.addOnSuccessListener {
-            // Log quiz completion to activity feed
             if (passed) {
-                ActivityLogger.logQuizCompleted(moduleTitle, percentage, percentage.toLong())
+                ActivityLogger.logQuizCompleted(moduleTitle, percentage, 0L)
             }
             showResultDialog(correctCount, totalQuestions, percentage, passed)
         }.addOnFailureListener { e ->
@@ -328,7 +319,7 @@ class QuizActivity : AppCompatActivity() {
                     "Correct Answers: $correctCount / $totalQuestions\n" +
                             "Score: $percentage%\n" +
                             "Result: Passed ✅\n\n" +
-                            "You can now go back and complete the module."
+                            "Go back and click 'Complete Module' to earn your EcoPoints!"
                 } else {
                     if (remainingAttempts > 0) {
                         "Correct Answers: $correctCount / $totalQuestions\n" +

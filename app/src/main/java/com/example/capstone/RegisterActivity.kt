@@ -200,38 +200,71 @@ class RegisterActivity : AppCompatActivity() {
      * Setup real-time school code validation
      */
     private fun setupSchoolCodeValidation() {
-        binding.etSchoolCode.addTextChangedListener(object : TextWatcher {
+        // Validate only when user leaves the field (focus lost)
+        // This prevents any warnings while the user is still typing
+        binding.etSchoolCode.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                // User finished typing and moved away from the field
+                val code = binding.etSchoolCode.text.toString().trim().uppercase()
+                binding.tilSchoolCode.error = null
+                binding.tilSchoolCode.helperText = null
+
+                when {
+                    code.isEmpty() -> {
+                        // Nothing typed — do nothing
+                    }
+                    code.length < 14 -> {
+                        // Code is too short — show a simple hint, not an error
+                        binding.tilSchoolCode.helperText = "School code must be 14 characters (${code.length}/14)"
+                        binding.llSchoolConfirmation.visibility = View.GONE
+                        binding.tilBatch.visibility = View.GONE
+                        selectedSchool = null
+                        if (role == "student") selectedBatch = null
+                    }
+                    else -> {
+                        // Full code entered — validate against Firestore
+                        validateSchoolCode(code)
+                    }
+                }
+            } else {
+                // User focused the field — clear any previous messages
+                binding.tilSchoolCode.error = null
+                binding.tilSchoolCode.helperText = null
+            }
+        }
+
+        // Also validate when user presses Done/Enter on keyboard
+        binding.etSchoolCode.setOnEditorActionListener { _, _, _ ->
+            val code = binding.etSchoolCode.text.toString().trim().uppercase()
+            binding.tilSchoolCode.error = null
+            binding.tilSchoolCode.helperText = null
+            if (code.length >= 14) {
+                validateSchoolCode(code)
+            } else if (code.isNotEmpty()) {
+                binding.tilSchoolCode.helperText = "School code must be 14 characters (${code.length}/14)"
+            }
+            false
+        }
+
+        // Clear messages while user is actively typing — no warnings mid-input
+        binding.etSchoolCode.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            
-            override fun afterTextChanged(s: Editable?) {
-                val code = s.toString().trim().uppercase()
-                
-                // Clear error
+            override fun afterTextChanged(s: android.text.Editable?) {
+                // Clear all messages while typing — no interruptions
                 binding.tilSchoolCode.error = null
-                
+                binding.tilSchoolCode.helperText = null
+
+                val code = s.toString().trim().uppercase()
                 if (code.length >= 14) {
-                    // Validate code (14 characters for full code)
+                    // Auto-validate as soon as 14 chars are reached
                     validateSchoolCode(code)
-                } else if (code.length >= 12) {
-                    // Show message for partial codes
-                    binding.tilSchoolCode.error = "School code should be 14 characters"
-                    binding.llSchoolConfirmation.visibility = View.GONE
-                    binding.tilBatch.visibility = View.GONE
-                    selectedSchool = null
-                    // Only reset batch for students, teachers don't need batches
-                    if (role == "student") {
-                        selectedBatch = null
-                    }
                 } else {
-                    // Hide school name and batch selection
+                    // Still typing — hide confirmation silently
                     binding.llSchoolConfirmation.visibility = View.GONE
                     binding.tilBatch.visibility = View.GONE
                     selectedSchool = null
-                    // Only reset batch for students, teachers don't need batches
-                    if (role == "student") {
-                        selectedBatch = null
-                    }
+                    if (role == "student") selectedBatch = null
                 }
             }
         })
@@ -282,7 +315,7 @@ class RegisterActivity : AppCompatActivity() {
                     // Invalid school code
                     binding.llSchoolConfirmation.visibility = View.GONE
                     binding.tilBatch.visibility = View.GONE
-                    binding.tilSchoolCode.error = "❌ Invalid school code. Please check and try again."
+                    binding.tilSchoolCode.error = "No school found with this code"
                     selectedSchool = null
                     // Only reset batch for students, teachers don't need batches
                     if (role == "student") {
@@ -290,7 +323,7 @@ class RegisterActivity : AppCompatActivity() {
                     }
                     
                     println("❌ Invalid school code: '$code'")
-                    Toast.makeText(this@RegisterActivity, "❌ Invalid school code", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@RegisterActivity, "❌ No school found", Toast.LENGTH_SHORT).show()
                 }
             }
         }

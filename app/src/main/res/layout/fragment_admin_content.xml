@@ -228,7 +228,7 @@
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
-            app:cardBackgroundColor="#9C27B0"
+            app:cardBackgroundColor="#00897B"
             app:cardCornerRadius="16dp"
             app:cardElevation="6dp">
 
@@ -267,7 +267,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="Monitor student rankings and performance"
-                        android:textColor="#E1BEE7"
+                        android:textColor="#B2DFDB"
                         android:textSize="13sp" />
 
                     <TextView
@@ -368,7 +368,7 @@
                 android:minHeight="56dp"
                 android:paddingTop="12dp"
                 android:paddingBottom="12dp"
-                app:backgroundTint="#9C27B0"
+                app:backgroundTint="#00897B"
                 app:cornerRadius="12dp"
                 app:icon="@android:drawable/ic_menu_myplaces"
                 app:iconGravity="start"

@@ -12,7 +12,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#0A2619"
+        android:background="#00897B"
         android:elevation="4dp"
         app:title="Teacher Approval"
         app:titleTextColor="@android:color/white"

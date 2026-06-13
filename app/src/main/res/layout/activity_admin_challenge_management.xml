@@ -14,7 +14,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="#D32F2F"
+            android:background="#00897B"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -112,7 +112,7 @@
                 android:text="All"
                 android:textSize="12sp"
                 android:layout_marginEnd="4dp"
-                android:backgroundTint="#D32F2F"
+                android:backgroundTint="#00897B"
                 android:textColor="@android:color/white" />
 
             <Button
@@ -218,7 +218,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="#D32F2F"
+        app:backgroundTint="#00897B"
         app:tint="@android:color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

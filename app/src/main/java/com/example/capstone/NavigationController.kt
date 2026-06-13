@@ -80,6 +80,9 @@ class StudentNavigationController(private val activity: StudentMainActivity) : N
     }
     
     override fun navigateToRoleSelection() {
+        // Stop all Firestore listeners BEFORE signing out to prevent PERMISSION_DENIED errors
+        com.example.capstone.services.PushNotificationService.stopListening()
+        activity.stopListeners()
         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
         val intent = android.content.Intent(activity, RoleSelectionActivity::class.java)
         intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK

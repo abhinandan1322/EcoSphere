@@ -52,24 +52,21 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupRegisterClickableText() {
-
-        val fullText = "Don't have an account? Register"
+        // "Don't have an account?" is already in the XML as a static TextView
+        // This TextView only needs to show the clickable "Register" word
+        val fullText = "Register"
         val spannable = SpannableString(fullText)
-
-        val start = fullText.indexOf("Register")
-        val end = start + "Register".length
 
         val clickableSpan = object : ClickableSpan() {
             override fun onClick(widget: View) {
                 val intent = Intent(this@LoginActivity, RegisterActivity::class.java)
-                // Pass the actual selected role, not hardcoded "student"
                 intent.putExtra("ROLE", selectedRole)
                 startActivity(intent)
             }
         }
 
-        spannable.setSpan(clickableSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        spannable.setSpan(ForegroundColorSpan(Color.BLUE), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannable.setSpan(clickableSpan, 0, fullText.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannable.setSpan(ForegroundColorSpan(Color.parseColor("#4CAF50")), 0, fullText.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
         binding.tvRegister.text = spannable
         binding.tvRegister.movementMethod = LinkMovementMethod.getInstance()

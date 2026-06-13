@@ -1,30 +1,26 @@
 // School Code Generator (same logic as Android app)
 class SchoolCodeGenerator {
-    static generateCode(schoolName, city, year = new Date().getFullYear()) {
-        // Extract first 8 characters from school name (alphanumeric only)
-        const cleanName = schoolName.replace(/[^a-zA-Z0-9]/g, '');
-        // IMPORTANT: Take EXACTLY 8 characters, pad if less
-        const namePrefix = cleanName.substring(0, 8).padEnd(8, 'X');
-        
-        // Generate 2-character random suffix
+    static generateCode(schoolName, year = new Date().getFullYear()) {
+        // Step 1: Clean school name — remove all non-alphanumeric characters
+        const cleanName = schoolName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+        // Step 2: Take EXACTLY 8 characters — no more, no less
+        const namePrefix = cleanName.slice(0, 8).padEnd(8, 'X');
+
+        // Step 3: Year — always exactly 4 digits
+        const yearStr = String(year).slice(-4);
+
+        // Step 4: 2 random uppercase letters
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const randomSuffix = chars.charAt(Math.floor(Math.random() * chars.length)) +
-                           chars.charAt(Math.floor(Math.random() * chars.length));
-        
-        // Format: NAME(8) + YEAR(4) + RANDOM(2) = 14 characters total
-        // Example: KHALSAMO + 2026 + MK = KHALSAMO2026MK (14 chars)
-        // IMPORTANT: Return UPPERCASE for Android app compatibility
-        const code = `${namePrefix}${year}${randomSuffix}`.toUpperCase();
-        
-        // Verify length is exactly 14
-        if (code.length !== 14) {
-            console.error(`❌ Generated code has wrong length: ${code.length} (expected 14)`);
-            console.error(`   Code: ${code}`);
-            console.error(`   namePrefix: ${namePrefix} (${namePrefix.length})`);
-            console.error(`   year: ${year} (${year.toString().length})`);
-            console.error(`   randomSuffix: ${randomSuffix} (${randomSuffix.length})`);
-        }
-        
+        const randomSuffix =
+            chars[Math.floor(Math.random() * 26)] +
+            chars[Math.floor(Math.random() * 26)];
+
+        // Combine parts and FORCE exactly 14 characters
+        // namePrefix(8) + yearStr(4) + randomSuffix(2) = 14
+        const code = (namePrefix + yearStr + randomSuffix).slice(0, 14).padEnd(14, 'X');
+
+        console.log(`✅ School code: ${code} | length: ${code.length}`);
         return code;
     }
 
@@ -73,10 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             // Generate school code and ID
-            const schoolCode = SchoolCodeGenerator.generateCode(
-                formData.schoolName,
-                formData.city
-            );
+            const schoolCode = SchoolCodeGenerator.generateCode(formData.schoolName);
             const schoolId = SchoolCodeGenerator.generateSchoolId(formData.schoolName);
             
             // Check if school already exists
@@ -172,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const data = window.registrationData;
         const content = `
-EcoLearn Platform - School Registration Details
+EcoSphere Platform - School Registration Details
 ================================================
 
 School Information:
@@ -212,7 +205,7 @@ Important Instructions:
 
 Registration Date: ${new Date().toLocaleString()}
 
-For support, contact: support@ecolearn.edu
+For support, contact: support@EcoSphere.edu
         `.trim();
         
         const blob = new Blob([content], { type: 'text/plain' });

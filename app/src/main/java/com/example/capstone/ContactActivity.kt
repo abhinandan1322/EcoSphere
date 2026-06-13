@@ -30,7 +30,7 @@ class ContactActivity : AppCompatActivity() {
             try {
                 val intent = Intent(Intent.ACTION_SENDTO).apply {
                     data = Uri.parse("mailto:abhijha1322@gmail.com")
-                    putExtra(Intent.EXTRA_SUBJECT, "EcoLearn Support")
+                    putExtra(Intent.EXTRA_SUBJECT, "EcoSphere Support")
                 }
                 startActivity(intent)
             } catch (e: Exception) {

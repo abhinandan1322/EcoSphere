@@ -95,6 +95,7 @@ class AdminSettingsFragment : Fragment(), NavigationAware {
     private fun listenForPendingTeachers() {
         if (teacherSchoolId == null) return
         
+        // Only show truly pending teachers — exclude rejected ones (isRejected = true)
         pendingCountListener = firestore.collection("Users")
             .whereEqualTo("schoolId", teacherSchoolId)
             .whereEqualTo("role", "teacher")
@@ -105,10 +106,14 @@ class AdminSettingsFragment : Fragment(), NavigationAware {
                 }
                 
                 if (snapshots != null) {
-                    val count = snapshots.size()
+                    // Filter out rejected teachers — only count genuinely pending ones
+                    val pendingCount = snapshots.documents.count { doc ->
+                        val isRejected = doc.getBoolean("isRejected") ?: false
+                        !isRejected
+                    }
                     
-                    if (count > 0) {
-                        binding.tvPendingBadge.text = count.toString()
+                    if (pendingCount > 0) {
+                        binding.tvPendingBadge.text = pendingCount.toString()
                         binding.tvPendingBadge.visibility = View.VISIBLE
                     } else {
                         binding.tvPendingBadge.visibility = View.GONE

@@ -156,10 +156,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Reject"
-                android:textColor="#D32F2F"
-                app:strokeColor="#D32F2F"
+                android:textColor="#F44336"
+                app:strokeColor="#F44336"
                 app:icon="@android:drawable/ic_menu_close_clear_cancel"
-                app:iconTint="#D32F2F"
+                app:iconTint="#F44336"
                 android:layout_marginEnd="8dp" />
 
             <com.google.android.material.button.MaterialButton

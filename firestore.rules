@@ -44,19 +44,20 @@ service cloud.firestore {
     
     match /Schools/{schoolId} {
       // Anyone can read schools for code validation during registration
-      // This is necessary because users aren't authenticated yet during registration
       allow read: if true;
       
-      // Only admins can create and manage schools
-      allow write: if isAdmin();
+      // Web portal can create schools without authentication
+      // (school registration is a public onboarding flow)
+      allow create: if true;
+      
+      // Only admins can update or delete schools
+      allow update, delete: if isAdmin();
     }
     
     // ─── Users Collection ───────────────────────────────────────────
     
     match /Users/{userId} {
       // Anyone can read users for first teacher check during registration
-      // This is necessary because users aren't authenticated yet during registration
-      // Limited to checking if teachers exist for a school
       allow read: if true;
       
       // Users can read their own data
@@ -76,13 +77,23 @@ service cloud.firestore {
                      isSameSchool(resource.data.schoolId) &&
                      resource.data.role == "student";
       
-      // Lead Teacher can approve teachers from their school
+      // Approved teachers can update ONLY ecoPoints of students in their school
+      // This is needed when deleting modules/challenges to reverse awarded points
+      allow update: if isSignedIn() &&
+                       isApprovedTeacher() &&
+                       resource.data.get('schoolId', '') != '' &&
+                       isSameSchool(resource.data.schoolId) &&
+                       resource.data.role == "student" &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ecoPoints']);
+      
+      // Lead Teacher can approve/reject teachers from their school
       allow update: if isSignedIn() &&
                        isLeadTeacher() &&
                        resource.data.get('schoolId', '') != '' &&
                        isSameSchool(resource.data.schoolId) &&
                        resource.data.role == "teacher" &&
-                       request.resource.data.keys().hasOnly(['isApproved']);
+                       request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['isApproved', 'isRejected', 'rejectedAt']);
       
       // Anyone can create their own user (registration)
       allow create: if request.auth.uid == userId;
@@ -238,13 +249,17 @@ service cloud.firestore {
       allow read: if isSignedIn() && 
                      resource.data.studentId == request.auth.uid;
       
-      // Approved teachers can read submissions assigned to them
-      allow read: if isSignedIn() &&
+      // Approved teachers can list/query ALL submissions from their school
+      // This covers whereIn("studentId", [...]) and whereEqualTo("schoolId", ...) queries
+      allow list: if isSignedIn() && isApprovedTeacher();
+      
+      // Approved teachers can read a specific submission assigned to them
+      allow get: if isSignedIn() &&
                      isApprovedTeacher() &&
                      resource.data.get('teacherId', '') == request.auth.uid;
       
-      // Approved teachers can read submissions from their school (fallback)
-      allow read: if isSignedIn() &&
+      // Approved teachers can read submissions from their school (get by doc)
+      allow get: if isSignedIn() &&
                      isApprovedTeacher() &&
                      resource.data.get('schoolId', '') != '' &&
                      isSameSchool(resource.data.schoolId);
@@ -264,6 +279,13 @@ service cloud.firestore {
       
       // Admins can delete submissions
       allow delete: if isAdmin();
+      
+      // Approved teachers can delete submissions from their school
+      // Needed when deleting a challenge to clean up all its submissions
+      allow delete: if isSignedIn() &&
+                       isApprovedTeacher() &&
+                       resource.data.get('schoolId', '') != '' &&
+                       isSameSchool(resource.data.schoolId);
     }
     
     // ─── Activity Feed ──────────────────────────────────────────────
@@ -289,6 +311,12 @@ service cloud.firestore {
       allow read: if isSignedIn() && 
                      (resource.data.get('schoolId', '') == '' ||
                       isSameSchool(resource.data.schoolId));
+      
+      // Students can update ONLY the readBy field (mark as read)
+      // Prevents students from modifying title, message, or any other field
+      allow update: if isSignedIn() &&
+                       isStudent() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
       
       // Approved teachers can create announcements for their school
       allow create: if isSignedIn() && 
@@ -415,6 +443,13 @@ service cloud.firestore {
                      get(/databases/$(database)/documents/Users/$(userId)).data.role == "student" &&
                      isSameSchool(get(/databases/$(database)/documents/Users/$(userId)).data.get('schoolId', ''));
       
+      // Teachers can delete completions of students from their school
+      // Needed when a module is deleted to clean up student records
+      allow delete: if isSignedIn() && isApprovedTeacher() && 
+                       exists(/databases/$(database)/documents/Users/$(userId)) &&
+                       get(/databases/$(database)/documents/Users/$(userId)).data.role == "student" &&
+                       isSameSchool(get(/databases/$(database)/documents/Users/$(userId)).data.get('schoolId', ''));
+      
       // Admins can read all completions
       allow read: if isAdmin();
     }
@@ -428,6 +463,13 @@ service cloud.firestore {
                      exists(/databases/$(database)/documents/Users/$(userId)) &&
                      get(/databases/$(database)/documents/Users/$(userId)).data.role == "student" &&
                      isSameSchool(get(/databases/$(database)/documents/Users/$(userId)).data.get('schoolId', ''));
+      
+      // Teachers can delete quiz attempts of students from their school
+      // Needed when a module is deleted to clean up student records
+      allow delete: if isSignedIn() && isApprovedTeacher() && 
+                       exists(/databases/$(database)/documents/Users/$(userId)) &&
+                       get(/databases/$(database)/documents/Users/$(userId)).data.role == "student" &&
+                       isSameSchool(get(/databases/$(database)/documents/Users/$(userId)).data.get('schoolId', ''));
       
       // Admins can read all quiz attempts
       allow read: if isAdmin();

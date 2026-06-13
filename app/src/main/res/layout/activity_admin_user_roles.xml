@@ -16,7 +16,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="#D32F2F"
+            android:background="#00897B"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -252,7 +252,7 @@
                 android:text="🛠️ Management Tools"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="#D32F2F"
+                android:textColor="#00897B"
                 android:layout_marginBottom="12dp" />
 
             <!-- Management Cards Grid -->
@@ -273,7 +273,7 @@
                     android:foreground="?android:attr/selectableItemBackground"
                     app:cardCornerRadius="8dp"
                     app:cardElevation="2dp"
-                    app:cardBackgroundColor="#FFEBEE">
+                    app:cardBackgroundColor="#E0F2F1">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -295,7 +295,7 @@
                             android:text="Role Management"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textColor="#C62828"
+                            android:textColor="#00695C"
                             android:textAlignment="center" />
 
                     </LinearLayout>
@@ -446,7 +446,7 @@
                     android:text="👤 Admin Users"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="#D32F2F"
+                    android:textColor="#00897B"
                     android:layout_gravity="center_vertical" />
 
                 <Button
@@ -532,7 +532,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="#D32F2F"
+        app:backgroundTint="#00897B"
         app:tint="@android:color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

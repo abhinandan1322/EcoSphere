@@ -484,7 +484,7 @@ class AdminChallengeManagementActivity : AppCompatActivity() {
     private fun showDeleteConfirmation(challenge: AdminChallenge) {
         AlertDialog.Builder(this)
             .setTitle("⚠️ Delete Challenge")
-            .setMessage("Are you sure you want to delete:\n\n\"${challenge.title}\"\n\nThis will also remove all related submissions. This action cannot be undone.")
+            .setMessage("Are you sure you want to delete:\n\n\"${challenge.title}\"\n\nThis will:\n• Remove all student submissions\n• Reverse EcoPoints earned by approved students\n\nThis action cannot be undone.")
             .setPositiveButton("Delete") { _, _ -> deleteChallenge(challenge) }
             .setNegativeButton("Cancel", null)
             .show()
@@ -493,45 +493,64 @@ class AdminChallengeManagementActivity : AppCompatActivity() {
     private fun deleteChallenge(challenge: AdminChallenge) {
         android.util.Log.d("ChallengeMgmt", "Deleting challenge: ${challenge.id}")
 
-        firestore.collection("Challenges")
-            .document(challenge.id)
-            .delete()
-            .addOnSuccessListener {
-                android.util.Log.d("ChallengeMgmt", "✅ Challenge deleted: ${challenge.id}")
-
-                // Also clean up orphaned submissions for this challenge
-                cleanupOrphanedSubmissions(challenge.id)
-
-                allChallenges.removeAll { it.id == challenge.id }
-                applyFilterAndSearch()
-                Snackbar.make(binding.root, "✅ Challenge deleted successfully", Snackbar.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener { e ->
-                android.util.Log.e("ChallengeMgmt", "❌ Failed to delete challenge", e)
-                Snackbar.make(binding.root, "❌ Failed to delete challenge: ${e.message}", Snackbar.LENGTH_LONG).show()
-            }
-    }
-
-    private fun cleanupOrphanedSubmissions(challengeId: String) {
+        // Step 1: Find all APPROVED submissions for this challenge to reverse points
         firestore.collection("ChallengeSubmissions")
-            .whereEqualTo("challengeId", challengeId)
+            .whereEqualTo("challengeId", challenge.id)
             .get()
             .addOnSuccessListener { submissions ->
-                android.util.Log.d("ChallengeMgmt", "Cleaning up ${submissions.size()} orphaned submissions for challenge $challengeId")
-                val batch = firestore.batch()
-                for (doc in submissions) {
-                    batch.delete(doc.reference)
+                android.util.Log.d("ChallengeMgmt", "Found ${submissions.size()} submissions to clean up")
+
+                val approvedSubmissions = submissions.documents.filter {
+                    it.getString("status") == "approved"
                 }
-                batch.commit()
+
+                android.util.Log.d("ChallengeMgmt", "${approvedSubmissions.size} were approved — reversing points")
+
+                // Step 2: Delete all submissions
+                val deleteBatch = firestore.batch()
+                for (doc in submissions) {
+                    deleteBatch.delete(doc.reference)
+                }
+
+                // Step 3: Reverse EcoPoints for approved submissions
+                for (submission in approvedSubmissions) {
+                    val studentId = submission.getString("studentId") ?: continue
+                    val pointsAwarded = submission.getLong("challengePoints") ?: challenge.points
+                    val userRef = firestore.collection("Users").document(studentId)
+                    deleteBatch.update(userRef, "ecoPoints",
+                        com.google.firebase.firestore.FieldValue.increment(-pointsAwarded))
+                    android.util.Log.d("ChallengeMgmt", "Reversing $pointsAwarded pts for student $studentId")
+                }
+
+                // Step 4: Delete the challenge document itself
+                deleteBatch.delete(firestore.collection("Challenges").document(challenge.id))
+
+                deleteBatch.commit()
                     .addOnSuccessListener {
-                        android.util.Log.d("ChallengeMgmt", "✅ Orphaned submissions cleaned up")
+                        android.util.Log.d("ChallengeMgmt", "✅ Challenge deleted, ${approvedSubmissions.size} students' points reversed")
+                        allChallenges.removeAll { it.id == challenge.id }
+                        applyFilterAndSearch()
+                        val msg = if (approvedSubmissions.isNotEmpty()) {
+                            "✅ Challenge deleted — ${approvedSubmissions.size} students' points reversed"
+                        } else {
+                            "✅ Challenge deleted successfully"
+                        }
+                        Snackbar.make(binding.root, msg, Snackbar.LENGTH_SHORT).show()
                     }
                     .addOnFailureListener { e ->
-                        android.util.Log.w("ChallengeMgmt", "Failed to clean up submissions: ${e.message}")
+                        android.util.Log.e("ChallengeMgmt", "❌ Failed to delete challenge", e)
+                        Snackbar.make(binding.root, "❌ Failed to delete challenge: ${e.message}", Snackbar.LENGTH_LONG).show()
                     }
             }
             .addOnFailureListener { e ->
-                android.util.Log.w("ChallengeMgmt", "Failed to query orphaned submissions: ${e.message}")
+                android.util.Log.e("ChallengeMgmt", "❌ Failed to load submissions for cleanup", e)
+                // Fallback: delete challenge without reversing points
+                firestore.collection("Challenges").document(challenge.id).delete()
+                    .addOnSuccessListener {
+                        allChallenges.removeAll { it.id == challenge.id }
+                        applyFilterAndSearch()
+                        Snackbar.make(binding.root, "✅ Challenge deleted (points not reversed)", Snackbar.LENGTH_SHORT).show()
+                    }
             }
     }
 

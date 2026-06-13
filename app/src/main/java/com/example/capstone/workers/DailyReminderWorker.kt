@@ -21,7 +21,7 @@ class DailyReminderWorker(
 
     companion object {
         private const val TAG = "DailyReminderWorker"
-        private const val CHANNEL_ID = "ecolearn_daily_reminders"
+        private const val CHANNEL_ID = "EcoSphere_daily_reminders"
         private const val NOTIFICATION_ID = 1001
     }
 
@@ -109,7 +109,7 @@ class DailyReminderWorker(
             // Build notification
             val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("EcoLearn Daily Reminder")
+                .setContentTitle("EcoSphere Daily Reminder")
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH) // Changed to HIGH

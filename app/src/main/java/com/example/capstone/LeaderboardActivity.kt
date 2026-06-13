@@ -57,6 +57,7 @@ class LeaderboardActivity : AppCompatActivity() {
             .get()
             .addOnSuccessListener { document ->
                 currentUserSchoolId = document.getString("schoolId") ?: ""
+                val role = document.getString("role") ?: "student"
 
                 if (currentUserSchoolId.isEmpty()) {
                     showLoading(false)
@@ -69,7 +70,13 @@ class LeaderboardActivity : AppCompatActivity() {
                     return@addOnSuccessListener
                 }
 
-                android.util.Log.d("Leaderboard", "User profile loaded: schoolId=$currentUserSchoolId")
+                // Hide "Your Standing" card for teachers — they don't earn EcoPoints
+                if (role == "teacher" || role == "admin") {
+                    binding.cardYourRank.visibility = View.GONE
+                    binding.tvYourStandingLabel.visibility = View.GONE
+                }
+
+                android.util.Log.d("Leaderboard", "User profile loaded: schoolId=$currentUserSchoolId, role=$role")
                 startRealtimeLeaderboard()
             }
             .addOnFailureListener { e ->
@@ -147,24 +154,20 @@ class LeaderboardActivity : AppCompatActivity() {
                     adapter.setData(list)
                 }
 
-                // ✅ Update "Your Rank" Card
+                // Update "Your Rank" Card — only relevant for students
                 if (currentUid != null) {
                     val index = list.indexOfFirst { it.uid == currentUid }
                     if (index != -1) {
-                        val you = list[index]
+                        // Student found in leaderboard
                         binding.tvYourRank.text = "#${index + 1}"
-                        binding.tvYourPoints.text = "${you.ecoPoints}"
-                        binding.tvYourName.text = if (you.name.isBlank()) "You" else you.name
+                        binding.tvYourPoints.text = "${list[index].ecoPoints}"
+                        binding.tvYourName.text = if (list[index].name.isBlank()) "You" else list[index].name
                     } else {
+                        // User is a teacher or not in the student list — card is already hidden
                         binding.tvYourRank.text = "#-"
                         binding.tvYourPoints.text = "0"
-                        binding.tvYourName.text = "Complete modules to rank!"
+                        binding.tvYourName.text = "Not ranked"
                     }
-                } else {
-                    android.util.Log.w("Leaderboard", "No current user")
-                    binding.tvYourRank.text = "#-"
-                    binding.tvYourPoints.text = "0"
-                    binding.tvYourName.text = "Login to see your rank"
                 }
             }
     }

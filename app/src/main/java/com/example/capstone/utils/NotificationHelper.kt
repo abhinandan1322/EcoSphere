@@ -15,7 +15,7 @@ object NotificationHelper {
     
     private const val TAG = "NotificationHelper"
     const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001
-    private const val PREFS_NAME = "ecolearn_prefs"
+    private const val PREFS_NAME = "EcoSphere_prefs"
     private const val KEY_FCM_TOKEN = "fcm_token"
     
     /**

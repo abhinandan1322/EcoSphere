@@ -27,7 +27,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         // Initialize SharedPreferences
-        sharedPreferences = getSharedPreferences("EcoLearnSettings", Context.MODE_PRIVATE)
+        sharedPreferences = getSharedPreferences("EcoSphereSettings", Context.MODE_PRIVATE)
 
         setupClickListeners()
         loadSettings()

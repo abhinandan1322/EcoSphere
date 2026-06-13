@@ -551,7 +551,100 @@ class AdminStudentsFragment : Fragment() {
             .setTitle("Progress Report")
             .setMessage(progressDetails)
             .setPositiveButton("Close", null)
+            .setNeutralButton("Recalculate Points") { _, _ ->
+                recalculateStudentPoints(student)
+            }
             .show()
+    }
+
+    /**
+     * Recalculates a student's EcoPoints from scratch based on existing valid data.
+     * Use this to fix orphaned points after modules/challenges are deleted.
+     */
+    private fun recalculateStudentPoints(student: StudentData) {
+        val loadingDialog = AlertDialog.Builder(requireContext())
+            .setTitle("Recalculating...")
+            .setMessage("Recalculating EcoPoints for ${student.name}")
+            .setCancelable(false)
+            .create()
+        loadingDialog.show()
+
+        val schoolId = teacherSchoolId ?: ""
+
+        // Step 1: Get valid module IDs for this school
+        firestore.collection("Modules")
+            .whereEqualTo("schoolId", schoolId)
+            .get()
+            .addOnSuccessListener { allModules ->
+                val validModuleIds = allModules.documents.map { it.id }.toSet()
+
+                // Step 2: Get valid challenge IDs for this school
+                firestore.collection("Challenges")
+                    .whereEqualTo("schoolId", schoolId)
+                    .get()
+                    .addOnSuccessListener { allChallenges ->
+                        val validChallengeIds = allChallenges.documents.map { it.id }.toSet()
+
+                        var totalPoints = 0L
+
+                        // Step 3: Count points from valid module completions
+                        firestore.collection("Users").document(student.uid)
+                            .collection("completions").get()
+                            .addOnSuccessListener { completions ->
+                                for (completion in completions.documents) {
+                                    if (completion.id in validModuleIds) {
+                                        totalPoints += completion.getLong("points") ?: 0
+                                    }
+                                }
+
+                                // Step 4: Quiz no longer awards points directly — skip quiz attempts
+                                // Points come only from: module completion + approved challenges + game
+
+                                // Step 5: Count points from valid approved challenge submissions
+                                firestore.collection("ChallengeSubmissions")
+                                    .whereEqualTo("studentId", student.uid)
+                                    .whereEqualTo("status", "approved")
+                                    .get()
+                                    .addOnSuccessListener { submissions ->
+                                        for (submission in submissions.documents) {
+                                            val challengeId = submission.getString("challengeId") ?: ""
+                                            if (challengeId in validChallengeIds) {
+                                                totalPoints += submission.getLong("challengePoints") ?: 0
+                                            }
+                                        }
+
+                                                // Step 6: Update the student's ecoPoints
+                                                firestore.collection("Users").document(student.uid)
+                                                    .update("ecoPoints", totalPoints)
+                                                    .addOnSuccessListener {
+                                                        loadingDialog.dismiss()
+                                                        if (_binding == null) return@addOnSuccessListener
+                                                        AlertDialog.Builder(requireContext())
+                                                            .setTitle("✅ Points Recalculated")
+                                                            .setMessage("${student.name}'s EcoPoints updated:\n\nPrevious: ${student.ecoPoints}\nRecalculated: $totalPoints")
+                                                            .setPositiveButton("OK") { _, _ -> loadStudents() }
+                                                            .show()
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        loadingDialog.dismiss()
+                                                        android.widget.Toast.makeText(
+                                                            requireContext(),
+                                                            "Failed to update points: ${e.message}",
+                                                            android.widget.Toast.LENGTH_LONG
+                                                        ).show()
+                                                    }
+                                            }
+                            }
+                    }
+            }
+            .addOnFailureListener { e ->
+                loadingDialog.dismiss()
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    "Failed to recalculate: ${e.message}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
     }
 
     private fun showDeleteConfirmation(student: StudentData) {

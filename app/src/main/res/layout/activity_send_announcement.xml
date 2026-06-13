@@ -9,7 +9,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#D32F2F"
+        android:background="#00897B"
         android:elevation="4dp" />
 
     <ScrollView
@@ -113,7 +113,7 @@
             android:layout_marginStart="8dp"
             android:text="Send Announcement"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#D32F2F" />
+            android:backgroundTint="#00897B" />
     </LinearLayout>
 
 </LinearLayout>

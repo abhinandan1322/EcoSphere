@@ -131,7 +131,7 @@
                 android:layout_weight="1"
                 android:text="Content"
                 android:textSize="10sp"
-                android:backgroundTint="#9C27B0"
+                android:backgroundTint="#00897B"
                 android:textColor="@android:color/white"
                 android:layout_marginEnd="4dp" />
 

@@ -64,7 +64,7 @@
                     android:text="SUPER ADMIN"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    android:textColor="#D32F2F"
+                    android:textColor="#00897B"
                     android:layout_marginTop="2dp" />
 
             </LinearLayout>

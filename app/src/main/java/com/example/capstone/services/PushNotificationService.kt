@@ -23,15 +23,21 @@ object PushNotificationService {
     private const val CHANNEL_ID = "admin_push_notifications"
     private const val CHANNEL_NAME = "Admin Notifications"
     
+    // Store listener registration so it can be removed on logout
+    private var listenerRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+    
     /**
      * Start listening for push notifications
      */
     fun startListening(context: Context) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         
+        // Remove any existing listener first to avoid duplicates
+        stopListening()
+        
         Log.d(TAG, "Starting push notification listener for user: $userId")
         
-        FirebaseFirestore.getInstance()
+        listenerRegistration = FirebaseFirestore.getInstance()
             .collection("PushNotifications")
             .whereEqualTo("type", "admin_push")
             .whereEqualTo("status", "sent")
@@ -64,6 +70,15 @@ object PushNotificationService {
                     }
                 }
             }
+    }
+    
+    /**
+     * Stop listening — call this on logout to prevent PERMISSION_DENIED errors
+     */
+    fun stopListening() {
+        listenerRegistration?.remove()
+        listenerRegistration = null
+        Log.d(TAG, "Push notification listener removed")
     }
     
     /**
